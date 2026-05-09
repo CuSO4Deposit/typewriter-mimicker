@@ -66,8 +66,8 @@ class EffectProfile:
             blur_radius=0.16,
             pitch_scale=0.92,
             line_drift_dpi_fraction=0.001,
-            ink_bleed_alpha=24,
-            ink_bleed_radius=0.35,
+            ink_bleed_alpha=56,
+            ink_bleed_radius=0.55,
             missing_ink_chance=0.018,
             missing_ink_radius=1,
         )
@@ -246,7 +246,9 @@ def draw_glyph(
         layer = layer.filter(ImageFilter.GaussianBlur(radius=profile.blur_radius))
 
     layer = apply_missing_ink(layer, glyph, profile)
-    page.alpha_composite(ink_bleed_layer(layer, profile), dest=(origin_x, origin_y))
+    page.alpha_composite(
+        ink_bleed_layer(layer, profile, ink), dest=(origin_x, origin_y)
+    )
     page.alpha_composite(layer, dest=(origin_x, origin_y))
 
 
@@ -256,7 +258,7 @@ def line_drift_for(glyph, dpi, profile):
     return rng.uniform(-max_drift, max_drift)
 
 
-def ink_bleed_layer(layer, profile):
+def ink_bleed_layer(layer, profile, ink):
     if profile.ink_bleed_alpha <= 0:
         return Image.new("RGBA", layer.size, (0, 0, 0, 0))
 
@@ -264,7 +266,7 @@ def ink_bleed_layer(layer, profile):
         ImageFilter.GaussianBlur(radius=profile.ink_bleed_radius)
     )
     alpha = alpha.point(lambda value: min(value, profile.ink_bleed_alpha))
-    bleed = Image.new("RGBA", layer.size, (38, 38, 38, 0))
+    bleed = Image.new("RGBA", layer.size, (ink, ink, ink, 0))
     bleed.putalpha(alpha)
     return bleed
 

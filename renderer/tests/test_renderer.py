@@ -20,7 +20,8 @@ def test_light_typewriter_profile_is_subtle():
     assert profile.normal_ink_range[1] - profile.normal_ink_range[0] <= 30
     assert profile.blur_chance <= 0.025
     assert profile.pitch_scale < 1.0
-    assert profile.ink_bleed_alpha == 24
+    assert profile.ink_bleed_alpha == 56
+    assert profile.ink_bleed_radius == 0.55
     assert profile.missing_ink_chance == 0.018
 
 
