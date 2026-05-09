@@ -13,7 +13,8 @@ The project has two deliberately separate stages.
 - renderer
   Python. Reads the glyph model, rasterizes each glyph with light
   typewriter jitter and ink variation, adds a paper background, and
-  writes a raster PDF.
+  writes a raster PDF. It also adds subtle line-level vertical drift
+  to mimic small carriage return and paper advance variation.
 
 The default renderer font is the bundled Special Elite typewriter face.
 It is licensed under the Apache License 2.0. See:
