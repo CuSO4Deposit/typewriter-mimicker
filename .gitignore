@@ -2,6 +2,7 @@
 .artifacts/
 .ruff_cache/
 .pre-commit-config.yaml
+.stack-work/
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
 
