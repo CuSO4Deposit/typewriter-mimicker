@@ -1,0 +1,32 @@
+name: typewriter-formatter
+version: 0.1.0.0
+license: MIT
+author: typewriter-mimicker
+maintainer: typewriter-mimicker
+build-type: Simple
+
+dependencies:
+  - base >= 4.18 && < 5
+
+ghc-options:
+  - -Wall
+  - -Werror
+
+library:
+  source-dirs: src
+  exposed-modules:
+    - Typewriter.Formatter
+
+executables:
+  typewriter-format:
+    main: Main.hs
+    source-dirs: app
+    dependencies:
+      - typewriter-formatter
+
+tests:
+  formatter-spec:
+    main: FormatterSpec.hs
+    source-dirs: test
+    dependencies:
+      - typewriter-formatter
