@@ -1,0 +1,16 @@
+TYPEWRITER MIMICKER
+===================
+
+This is a small RFC-ish plain text sample. The formatter treats normal
+paragraph text as soft-wrapped prose, but keeps indented text stable so
+tables, code, and literal examples survive the trip to paper.
+
+- keep the formatter deterministic
+- keep the renderer responsible for ink and paper
+- keep the input plain
+
+    GET /typed-page HTTP/1.1
+    Host: example.test
+
+The visual character comes later. At this stage each character only needs
+to know its page, row, column, style, and seed.
