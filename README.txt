@@ -16,9 +16,9 @@ The project has two deliberately separate stages.
   writes a raster PDF.
 
 The default renderer font is the bundled Special Elite typewriter face.
-It is licensed under the SIL Open Font License. See:
+It is licensed under the Apache License 2.0. See:
 
-    assets/fonts/SpecialElite-OFL.txt
+    assets/fonts/SpecialElite-Apache-2.0.txt
 
 Usage
 -----
