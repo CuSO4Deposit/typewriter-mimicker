@@ -1,6 +1,6 @@
 name: typewriter-formatter
 version: 0.1.0.0
-license: MIT
+license: Apache-2.0
 author: typewriter-mimicker
 maintainer: typewriter-mimicker
 build-type: Simple
