@@ -81,15 +81,16 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--dpi", type=int, default=300)
     parser.add_argument("--preset", default="light-typewriter")
+    parser.add_argument("--paper", choices=["clean", "aged"], default="clean")
     parser.add_argument("--font", help="Path to a TTF/OTF font file.")
     args = parser.parse_args()
 
     document = json.loads(args.input.read_text(encoding="utf-8"))
-    pages = render_document(document, args.dpi, args.preset, args.font)
+    pages = render_document(document, args.dpi, args.preset, args.paper, args.font)
     save_pdf(pages, args.output, args.dpi)
 
 
-def render_document(document, dpi, preset, font_name=None):
+def render_document(document, dpi, preset, paper_style, font_name=None):
     page = document["page"]
     paper_width, paper_height = PAPER_SIZES_IN.get(
         page["paper"], PAPER_SIZES_IN["letter"]
@@ -109,7 +110,7 @@ def render_document(document, dpi, preset, font_name=None):
     font = load_font(font_size, font_path)
     profile = effect_profile(preset)
     max_page = max((glyph["page"] for glyph in document["glyphs"]), default=0)
-    pages = [new_page(width_px, height_px) for _ in range(max_page + 1)]
+    pages = [new_page(width_px, height_px, paper_style) for _ in range(max_page + 1)]
 
     for glyph in document["glyphs"]:
         draw_glyph(
@@ -127,7 +128,7 @@ def render_document(document, dpi, preset, font_name=None):
     return [page.convert("RGB") for page in pages]
 
 
-def new_page(width_px, height_px):
+def new_page(width_px, height_px, paper_style="clean"):
     image = Image.new("RGBA", (width_px, height_px), DEFAULT_PAPER_RGBA)
     pixels = image.load()
     rng = random.Random(982451653)
@@ -136,7 +137,45 @@ def new_page(width_px, height_px):
             delta = rng.randint(-2, 2)
             r, g, b, a = pixels[x, y]
             pixels[x, y] = (clamp(r + delta), clamp(g + delta), clamp(b + delta), a)
+    if paper_style == "aged":
+        age_paper(image)
     return image
+
+
+def age_paper(image):
+    pixels = image.load()
+    width, height = image.size
+    rng = random.Random(19081982)
+    center_x = width / 2
+    center_y = height / 2
+    max_distance = (center_x**2 + center_y**2) ** 0.5
+
+    for y in range(height):
+        block_y = y // 48
+        for x in range(width):
+            block_x = x // 48
+            block_rng = random.Random(block_x * 1009 + block_y * 9176)
+            low_frequency = block_rng.randint(-3, 3)
+            edge_distance = ((x - center_x) ** 2 + (y - center_y) ** 2) ** 0.5
+            edge_darkening = round((edge_distance / max_distance) ** 2 * 11)
+            r, g, b, a = pixels[x, y]
+            pixels[x, y] = (
+                clamp(r - 7 + low_frequency - edge_darkening),
+                clamp(g - 9 + low_frequency - edge_darkening),
+                clamp(b - 15 + low_frequency - edge_darkening),
+                a,
+            )
+
+    stain_count = max(3, (width * height) // 120000)
+    draw = ImageDraw.Draw(image, "RGBA")
+    for _ in range(stain_count):
+        x = rng.randint(0, max(0, width - 1))
+        y = rng.randint(0, max(0, height - 1))
+        radius = rng.randint(max(4, width // 180), max(8, width // 70))
+        draw.ellipse(
+            (x - radius, y - radius, x + radius, y + radius),
+            fill=(126, 104, 72, rng.randint(5, 11)),
+        )
 
 
 def effect_profile(preset):

@@ -5,11 +5,25 @@ from pathlib import Path
 
 RENDERER_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RENDERER_ROOT))
-from main import DEFAULT_PAPER_RGBA, EffectProfile, fit_font_size, resolve_font_path  # noqa: E402
+from main import (  # noqa: E402
+    DEFAULT_PAPER_RGBA,
+    EffectProfile,
+    new_page,
+    fit_font_size,
+    resolve_font_path,
+)
 
 
 def test_default_paper_is_nearly_white():
     assert DEFAULT_PAPER_RGBA == (252, 251, 247, 255)
+
+
+def test_aged_paper_changes_base_page_tone():
+    clean = new_page(120, 120, "clean")
+    aged = new_page(120, 120, "aged")
+
+    assert clean.getpixel((60, 60)) != aged.getpixel((60, 60))
+    assert aged.getpixel((0, 0))[0] < aged.getpixel((60, 60))[0]
 
 
 def test_light_typewriter_profile_is_subtle():
@@ -70,6 +84,8 @@ def test_renderer_writes_nonempty_pdf(tmp_path):
             "--dpi",
             "72",
             "--preset",
+            "clean",
+            "--paper",
             "clean",
         ],
         check=True,

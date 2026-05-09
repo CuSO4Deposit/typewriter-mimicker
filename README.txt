@@ -32,6 +32,10 @@ Render in one command:
 
     nix run . -- examples/sample.txt .artifacts/sample.pdf
 
+Render with optional aged paper:
+
+    nix run . -- examples/sample.txt .artifacts/sample.pdf --paper aged
+
 Generate glyph JSON:
 
     mkdir -p .artifacts
