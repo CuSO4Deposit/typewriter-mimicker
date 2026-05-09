@@ -7,6 +7,8 @@ RENDERER_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RENDERER_ROOT))
 from main import (  # noqa: E402
     DEFAULT_PAPER_RGBA,
+    FONT_SIZE_LINE_HEIGHT_FRACTION,
+    MARGIN_X_IN,
     EffectProfile,
     new_page,
     fit_font_size,
@@ -33,10 +35,15 @@ def test_light_typewriter_profile_is_subtle():
     assert profile.line_drift_dpi_fraction == 0.001
     assert profile.normal_ink_range[1] - profile.normal_ink_range[0] <= 30
     assert profile.blur_chance <= 0.025
-    assert profile.pitch_scale < 1.0
+    assert profile.pitch_scale == 1.0
     assert profile.ink_bleed_alpha == 56
     assert profile.ink_bleed_radius == 0.55
     assert profile.missing_ink_chance == 0.018
+
+
+def test_default_layout_uses_pica_like_width():
+    assert MARGIN_X_IN == 0.65
+    assert FONT_SIZE_LINE_HEIGHT_FRACTION == 0.74
 
 
 def test_clean_profile_has_no_ink_damage():

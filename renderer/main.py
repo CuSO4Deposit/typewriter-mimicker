@@ -15,6 +15,9 @@ PAPER_SIZES_IN = {
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_FONT = PROJECT_ROOT / "assets/fonts/SpecialElite-Regular.ttf"
 DEFAULT_PAPER_RGBA = (252, 251, 247, 255)
+MARGIN_X_IN = 0.65
+MARGIN_Y_IN = 0.8
+FONT_SIZE_LINE_HEIGHT_FRACTION = 0.74
 
 
 @dataclass(frozen=True)
@@ -45,7 +48,7 @@ class EffectProfile:
             double_strike_alpha=0,
             blur_chance=0.0,
             blur_radius=0.0,
-            pitch_scale=0.92,
+            pitch_scale=1.0,
             line_drift_dpi_fraction=0.0,
             ink_bleed_alpha=0,
             ink_bleed_radius=0.0,
@@ -64,7 +67,7 @@ class EffectProfile:
             double_strike_alpha=36,
             blur_chance=0.02,
             blur_radius=0.16,
-            pitch_scale=0.92,
+            pitch_scale=1.0,
             line_drift_dpi_fraction=0.001,
             ink_bleed_alpha=56,
             ink_bleed_radius=0.55,
@@ -99,8 +102,8 @@ def render_document(document, dpi, preset, paper_style, font_name=None):
     height_px = round(paper_height * dpi)
     columns = int(page["columns"])
     rows = int(page["rows"])
-    margin_x = round(0.85 * dpi)
-    margin_y = round(0.8 * dpi)
+    margin_x = round(MARGIN_X_IN * dpi)
+    margin_y = round(MARGIN_Y_IN * dpi)
     usable_width = width_px - margin_x * 2
     usable_height = height_px - margin_y * 2
     cell_width = (usable_width / max(columns, 1)) * effect_profile(preset).pitch_scale
@@ -213,7 +216,7 @@ def resolve_font_path(font_name=None):
 
 
 def fit_font_size(font_path, cell_width, line_height):
-    size = max(8, round(line_height * 0.62))
+    size = max(8, round(line_height * FONT_SIZE_LINE_HEIGHT_FRACTION))
     sample = "MW"
     while size > 6:
         font = load_font(size, font_path)
