@@ -26,6 +26,7 @@ class EffectProfile:
     double_strike_alpha: int
     blur_chance: float
     blur_radius: float
+    pitch_scale: float
 
     @staticmethod
     def clean():
@@ -38,6 +39,7 @@ class EffectProfile:
             double_strike_alpha=0,
             blur_chance=0.0,
             blur_radius=0.0,
+            pitch_scale=0.92,
         )
 
     @staticmethod
@@ -51,6 +53,7 @@ class EffectProfile:
             double_strike_alpha=36,
             blur_chance=0.02,
             blur_radius=0.16,
+            pitch_scale=0.92,
         )
 
 
@@ -83,7 +86,7 @@ def render_document(document, dpi, preset, font_name=None):
     margin_y = round(0.8 * dpi)
     usable_width = width_px - margin_x * 2
     usable_height = height_px - margin_y * 2
-    cell_width = usable_width / max(columns, 1)
+    cell_width = (usable_width / max(columns, 1)) * effect_profile(preset).pitch_scale
     line_height = usable_height / max(rows, 1)
     font_path = resolve_font_path(font_name)
     font_size = fit_font_size(font_path, cell_width, line_height)

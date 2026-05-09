@@ -18,7 +18,7 @@ main = do
     "parseBlocks recognizes headings, paragraphs, pre blocks, and lists"
     [ Heading 1 "TITLE"
     , Paragraph "This is a short paragraph that should wrap cleanly."
-    , Preformatted ["keep  spacing", "and indentation"]
+    , Preformatted ["    keep  spacing", "    and indentation"]
     , BulletList ["first item", "second item"]
     ]
     blocks
@@ -31,8 +31,8 @@ main = do
     , Line NormalStyle "paragraph that should"
     , Line NormalStyle "wrap cleanly."
     , Line NormalStyle ""
-    , Line PreStyle "keep  spacing"
-    , Line PreStyle "and indentation"
+    , Line PreStyle "    keep  spacing"
+    , Line PreStyle "    and indentation"
     , Line NormalStyle ""
     , Line NormalStyle "- first item"
     , Line NormalStyle "- second item"

@@ -95,7 +95,7 @@ parseLines (line : rest)
   | isHeadingUnderline rest = Heading 1 (trimRight line) : parseLines (drop 1 rest)
   | isIndented line =
       let (preLines, remaining) = span isIndented (line : rest)
-       in Preformatted (map (drop 4) preLines) : parseLines remaining
+       in Preformatted preLines : parseLines remaining
   | isBullet line =
       let (items, remaining) = span isBullet (line : rest)
        in BulletList (map bulletText items) : parseLines remaining

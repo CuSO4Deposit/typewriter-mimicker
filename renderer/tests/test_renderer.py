@@ -13,6 +13,7 @@ def test_light_typewriter_profile_is_subtle():
     assert profile.jitter_dpi_fraction <= 0.0015
     assert profile.normal_ink_range[1] - profile.normal_ink_range[0] <= 30
     assert profile.blur_chance <= 0.025
+    assert profile.pitch_scale < 1.0
 
 
 def test_fit_font_size_respects_cell_width():
