@@ -5,12 +5,12 @@ Plain text to typewriter-style PDF.
 
 The project has two deliberately separate stages.
 
-- formatter
+1. formatter
   Haskell. Parses plain text conventions, wraps prose, preserves
   preformatted blocks, paginates a fixed-width page, and emits a
   deterministic glyph JSON model.
 
-- renderer
+2. renderer
   Python. Reads the glyph model, rasterizes each glyph with light
   typewriter jitter and ink variation, adds a paper background, and
   writes a raster PDF. It also adds subtle line-level vertical drift
@@ -35,6 +35,43 @@ Render in one command:
 Render with optional aged paper:
 
     nix run . -- examples/sample.txt .artifacts/sample.pdf --paper aged
+
+Options
+-------
+
+The one-command Nix app accepts renderer options after the output path:
+
+    nix run . -- INPUT.txt OUTPUT.pdf --dpi 150 --paper aged
+
+Formatter options:
+
+  --cols N
+  Number of fixed-width text columns. Default: 72.
+
+  --rows N
+  Number of text rows per page. Default: 58.
+
+  --paper NAME
+  Logical paper name in the JSON page model. Default: letter.
+
+  --seed N
+  Base seed for deterministic glyph effects. Default: 1.
+
+Renderer options:
+
+  --dpi N
+  Output raster resolution. Default: 300.
+
+  --preset NAME
+  Visual effect preset. Default: light-typewriter.
+  The clean preset disables jitter, line drift, ink bleed,
+  and missing ink.
+
+  --paper clean|aged
+  Paper treatment. Default: clean.
+
+  --font FONT.ttf
+  Override the bundled Special Elite font.
 
 Generate glyph JSON:
 

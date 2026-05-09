@@ -46,6 +46,11 @@ main = do
     ]
     (formatBlocks (FormatOptions {formatColumns = 22}) blocks)
 
+  assertEqual
+    "parseBlocks preserves lightly indented option lines"
+    [Preformatted ["  --cols N", "  Number of columns."]]
+    (parseBlocks "  --cols N\n  Number of columns.\n")
+
   let doc =
         emitDocument
           DocumentOptions

@@ -142,7 +142,7 @@ bulletText (_ : ' ' : rest) = rest
 bulletText line = line
 
 isIndented :: String -> Bool
-isIndented line = length (takeWhile (== ' ') line) >= 4
+isIndented line = not (blank line) && take 1 line == " "
 
 blank :: String -> Bool
 blank = all isSpace
