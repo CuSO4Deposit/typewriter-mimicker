@@ -14,6 +14,7 @@ PAPER_SIZES_IN = {
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_FONT = PROJECT_ROOT / "assets/fonts/SpecialElite-Regular.ttf"
+DEFAULT_PAPER_RGBA = (252, 251, 247, 255)
 
 
 @dataclass(frozen=True)
@@ -112,7 +113,7 @@ def render_document(document, dpi, preset, font_name=None):
 
 
 def new_page(width_px, height_px):
-    image = Image.new("RGBA", (width_px, height_px), (247, 243, 232, 255))
+    image = Image.new("RGBA", (width_px, height_px), DEFAULT_PAPER_RGBA)
     pixels = image.load()
     rng = random.Random(982451653)
     for y in range(0, height_px, 3):

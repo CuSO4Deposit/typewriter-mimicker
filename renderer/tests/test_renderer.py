@@ -3,8 +3,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from main import EffectProfile, fit_font_size, resolve_font_path
+RENDERER_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(RENDERER_ROOT))
+from main import DEFAULT_PAPER_RGBA, EffectProfile, fit_font_size, resolve_font_path  # noqa: E402
+
+
+def test_default_paper_is_nearly_white():
+    assert DEFAULT_PAPER_RGBA == (252, 251, 247, 255)
 
 
 def test_light_typewriter_profile_is_subtle():
@@ -47,7 +52,7 @@ def test_renderer_writes_nonempty_pdf(tmp_path):
     subprocess.run(
         [
             sys.executable,
-            "main.py",
+            str(RENDERER_ROOT / "main.py"),
             str(input_path),
             "--output",
             str(output_path),
