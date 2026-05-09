@@ -1,6 +1,31 @@
 import json
 import subprocess
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from main import EffectProfile, fit_font_size, resolve_font_path
+
+
+def test_light_typewriter_profile_is_subtle():
+    profile = EffectProfile.light_typewriter()
+
+    assert profile.jitter_dpi_fraction <= 0.0015
+    assert profile.normal_ink_range[1] - profile.normal_ink_range[0] <= 30
+    assert profile.blur_chance <= 0.025
+
+
+def test_fit_font_size_respects_cell_width():
+    font_size = fit_font_size(None, cell_width=9, line_height=18)
+
+    assert font_size <= 12
+
+
+def test_resolve_font_path_accepts_explicit_file(tmp_path):
+    font_path = tmp_path / "SpecialElite-Regular.ttf"
+    font_path.write_bytes(b"not a real font")
+
+    assert resolve_font_path(str(font_path)) == font_path
 
 
 def test_renderer_writes_nonempty_pdf(tmp_path):
@@ -27,6 +52,8 @@ def test_renderer_writes_nonempty_pdf(tmp_path):
             str(output_path),
             "--dpi",
             "72",
+            "--preset",
+            "clean",
         ],
         check=True,
     )

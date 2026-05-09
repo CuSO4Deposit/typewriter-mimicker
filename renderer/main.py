@@ -1,6 +1,8 @@
 import argparse
 import json
+import os
 import random
+from dataclasses import dataclass
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -9,6 +11,47 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 PAPER_SIZES_IN = {
     "letter": (8.5, 11.0),
 }
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_FONT = PROJECT_ROOT / "assets/fonts/SpecialElite-Regular.ttf"
+
+
+@dataclass(frozen=True)
+class EffectProfile:
+    jitter_dpi_fraction: float
+    normal_ink_range: tuple[int, int]
+    heading_ink_range: tuple[int, int]
+    alpha_range: tuple[int, int]
+    double_strike_chance: float
+    double_strike_alpha: int
+    blur_chance: float
+    blur_radius: float
+
+    @staticmethod
+    def clean():
+        return EffectProfile(
+            jitter_dpi_fraction=0.0,
+            normal_ink_range=(62, 72),
+            heading_ink_range=(42, 52),
+            alpha_range=(220, 230),
+            double_strike_chance=0.0,
+            double_strike_alpha=0,
+            blur_chance=0.0,
+            blur_radius=0.0,
+        )
+
+    @staticmethod
+    def light_typewriter():
+        return EffectProfile(
+            jitter_dpi_fraction=0.0012,
+            normal_ink_range=(58, 82),
+            heading_ink_range=(36, 58),
+            alpha_range=(214, 232),
+            double_strike_chance=0.01,
+            double_strike_alpha=36,
+            blur_chance=0.02,
+            blur_radius=0.16,
+        )
 
 
 def main():
@@ -19,14 +62,15 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--dpi", type=int, default=300)
     parser.add_argument("--preset", default="light-typewriter")
+    parser.add_argument("--font", help="Path to a TTF/OTF font file.")
     args = parser.parse_args()
 
     document = json.loads(args.input.read_text(encoding="utf-8"))
-    pages = render_document(document, args.dpi, args.preset)
+    pages = render_document(document, args.dpi, args.preset, args.font)
     save_pdf(pages, args.output, args.dpi)
 
 
-def render_document(document, dpi, preset):
+def render_document(document, dpi, preset, font_name=None):
     page = document["page"]
     paper_width, paper_height = PAPER_SIZES_IN.get(
         page["paper"], PAPER_SIZES_IN["letter"]
@@ -41,8 +85,10 @@ def render_document(document, dpi, preset):
     usable_height = height_px - margin_y * 2
     cell_width = usable_width / max(columns, 1)
     line_height = usable_height / max(rows, 1)
-    font_size = max(8, round(line_height * 0.68))
-    font = load_font(font_size)
+    font_path = resolve_font_path(font_name)
+    font_size = fit_font_size(font_path, cell_width, line_height)
+    font = load_font(font_size, font_path)
+    profile = effect_profile(preset)
     max_page = max((glyph["page"] for glyph in document["glyphs"]), default=0)
     pages = [new_page(width_px, height_px) for _ in range(max_page + 1)]
 
@@ -56,7 +102,7 @@ def render_document(document, dpi, preset):
             cell_width,
             line_height,
             dpi,
-            preset,
+            profile,
         )
 
     return [page.convert("RGB") for page in pages]
@@ -74,20 +120,62 @@ def new_page(width_px, height_px):
     return image
 
 
-def load_font(size):
+def effect_profile(preset):
+    if preset == "clean":
+        return EffectProfile.clean()
+    return EffectProfile.light_typewriter()
+
+
+def resolve_font_path(font_name=None):
+    if font_name:
+        requested = Path(font_name).expanduser()
+        if requested.exists():
+            return requested
+
+    env_font = os.environ.get("TYPEWRITER_FONT")
+    if env_font:
+        requested = Path(env_font).expanduser()
+        if requested.exists():
+            return requested
+
+    if DEFAULT_FONT.exists():
+        return DEFAULT_FONT
+
     candidates = [
+        "/usr/share/fonts/truetype/special-elite/SpecialElite-Regular.ttf",
+        "/usr/share/fonts/truetype/courier-prime/CourierPrime-Regular.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
         "/usr/share/fonts/dejavu/DejaVuSansMono.ttf",
         "/run/current-system/sw/share/X11/fonts/TTF/DejaVuSansMono.ttf",
     ]
     for candidate in candidates:
         if Path(candidate).exists():
-            return ImageFont.truetype(candidate, size=size)
+            return Path(candidate)
+    return None
+
+
+def fit_font_size(font_path, cell_width, line_height):
+    size = max(8, round(line_height * 0.62))
+    sample = "MW"
+    while size > 6:
+        font = load_font(size, font_path)
+        bbox = font.getbbox(sample)
+        glyph_width = (bbox[2] - bbox[0]) / len(sample)
+        glyph_height = bbox[3] - bbox[1]
+        if glyph_width <= cell_width * 0.92 and glyph_height <= line_height * 0.82:
+            return size
+        size -= 1
+    return size
+
+
+def load_font(size, font_path):
+    if font_path is not None:
+        return ImageFont.truetype(font_path, size=size)
     return ImageFont.load_default(size=size)
 
 
 def draw_glyph(
-    page, glyph, font, margin_x, margin_y, cell_width, line_height, dpi, preset
+    page, glyph, font, margin_x, margin_y, cell_width, line_height, dpi, profile
 ):
     ch = glyph["char"]
     if ch == " ":
@@ -95,29 +183,32 @@ def draw_glyph(
 
     rng = random.Random(int(glyph["seed"]))
     style = glyph["style"]
-    jitter = 0.0035 * dpi
+    jitter = profile.jitter_dpi_fraction * dpi
     x = margin_x + glyph["col"] * cell_width + rng.uniform(-jitter, jitter)
     y = margin_y + glyph["row"] * line_height + rng.uniform(-jitter, jitter)
-    ink = rng.randint(38, 92)
+    ink = rng.randint(*profile.normal_ink_range)
     if style == "heading":
-        ink = rng.randint(18, 55)
+        ink = rng.randint(*profile.heading_ink_range)
 
     layer = Image.new("RGBA", page.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(layer)
     draw.text(
-        (round(x), round(y)), ch, font=font, fill=(ink, ink, ink, rng.randint(190, 235))
+        (round(x), round(y)),
+        ch,
+        font=font,
+        fill=(ink, ink, ink, rng.randint(*profile.alpha_range)),
     )
 
-    if style == "heading" or rng.random() < 0.025:
+    if style == "heading" or rng.random() < profile.double_strike_chance:
         draw.text(
-            (round(x + 0.0025 * dpi), round(y - 0.0015 * dpi)),
+            (round(x + 0.0012 * dpi), round(y - 0.0008 * dpi)),
             ch,
             font=font,
-            fill=(ink, ink, ink, 75),
+            fill=(ink, ink, ink, profile.double_strike_alpha),
         )
 
-    if preset != "clean" and rng.random() < 0.08:
-        layer = layer.filter(ImageFilter.GaussianBlur(radius=0.25))
+    if rng.random() < profile.blur_chance:
+        layer = layer.filter(ImageFilter.GaussianBlur(radius=profile.blur_radius))
 
     page.alpha_composite(layer)
 

@@ -15,6 +15,11 @@ The project has two deliberately separate stages.
   typewriter jitter and ink variation, adds a paper background, and
   writes a raster PDF.
 
+The default renderer font is the bundled Special Elite typewriter face.
+It is licensed under the SIL Open Font License. See:
+
+    assets/fonts/SpecialElite-OFL.txt
+
 Usage
 -----
 
@@ -25,12 +30,14 @@ Enter the development shell:
 Generate glyph JSON:
 
     cd formatter
-    stack run -- ../examples/sample.txt --cols 72 --rows 58 > ../.artifacts/pages.json
+    stack run -- ../examples/sample.txt > ../.artifacts/pages.json
 
 Render a PDF:
 
     cd renderer
-    uv run python main.py ../.artifacts/pages.json --output ../.artifacts/sample.pdf --dpi 150
+    uv run python main.py ../.artifacts/pages.json \
+      --output ../.artifacts/sample.pdf \
+      --dpi 150
 
 Run checks:
 

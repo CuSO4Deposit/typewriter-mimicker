@@ -12,5 +12,5 @@ tables, code, and literal examples survive the trip to paper.
     GET /typed-page HTTP/1.1
     Host: example.test
 
-The visual character comes later. At this stage each character only needs
-to know its page, row, column, style, and seed.
+The visual character comes later. At this stage each character needs to
+know its page, row, column, style, and seed.
