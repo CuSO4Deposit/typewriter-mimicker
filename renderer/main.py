@@ -28,6 +28,7 @@ class EffectProfile:
     blur_chance: float
     blur_radius: float
     pitch_scale: float
+    line_drift_dpi_fraction: float
 
     @staticmethod
     def clean():
@@ -41,12 +42,13 @@ class EffectProfile:
             blur_chance=0.0,
             blur_radius=0.0,
             pitch_scale=0.92,
+            line_drift_dpi_fraction=0.0,
         )
 
     @staticmethod
     def light_typewriter():
         return EffectProfile(
-            jitter_dpi_fraction=0.0012,
+            jitter_dpi_fraction=0.0018,
             normal_ink_range=(58, 82),
             heading_ink_range=(36, 58),
             alpha_range=(214, 232),
@@ -55,6 +57,7 @@ class EffectProfile:
             blur_chance=0.02,
             blur_radius=0.16,
             pitch_scale=0.92,
+            line_drift_dpi_fraction=0.001,
         )
 
 
@@ -188,8 +191,14 @@ def draw_glyph(
     rng = random.Random(int(glyph["seed"]))
     style = glyph["style"]
     jitter = profile.jitter_dpi_fraction * dpi
+    line_drift = line_drift_for(glyph, dpi, profile)
     x = margin_x + glyph["col"] * cell_width + rng.uniform(-jitter, jitter)
-    y = margin_y + glyph["row"] * line_height + rng.uniform(-jitter, jitter)
+    y = (
+        margin_y
+        + glyph["row"] * line_height
+        + line_drift
+        + rng.uniform(-jitter, jitter)
+    )
     ink = rng.randint(*profile.normal_ink_range)
     if style == "heading":
         ink = rng.randint(*profile.heading_ink_range)
@@ -215,6 +224,12 @@ def draw_glyph(
         layer = layer.filter(ImageFilter.GaussianBlur(radius=profile.blur_radius))
 
     page.alpha_composite(layer)
+
+
+def line_drift_for(glyph, dpi, profile):
+    max_drift = profile.line_drift_dpi_fraction * dpi
+    rng = random.Random((glyph["page"] + 1) * 1000003 + glyph["row"] * 9176)
+    return rng.uniform(-max_drift, max_drift)
 
 
 def save_pdf(pages, output_path, dpi):
