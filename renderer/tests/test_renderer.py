@@ -20,6 +20,15 @@ def test_light_typewriter_profile_is_subtle():
     assert profile.normal_ink_range[1] - profile.normal_ink_range[0] <= 30
     assert profile.blur_chance <= 0.025
     assert profile.pitch_scale < 1.0
+    assert profile.ink_bleed_alpha == 24
+    assert profile.missing_ink_chance == 0.018
+
+
+def test_clean_profile_has_no_ink_damage():
+    profile = EffectProfile.clean()
+
+    assert profile.ink_bleed_alpha == 0
+    assert profile.missing_ink_chance == 0.0
 
 
 def test_fit_font_size_respects_cell_width():

@@ -29,6 +29,10 @@ class EffectProfile:
     blur_radius: float
     pitch_scale: float
     line_drift_dpi_fraction: float
+    ink_bleed_alpha: int
+    ink_bleed_radius: float
+    missing_ink_chance: float
+    missing_ink_radius: int
 
     @staticmethod
     def clean():
@@ -43,6 +47,10 @@ class EffectProfile:
             blur_radius=0.0,
             pitch_scale=0.92,
             line_drift_dpi_fraction=0.0,
+            ink_bleed_alpha=0,
+            ink_bleed_radius=0.0,
+            missing_ink_chance=0.0,
+            missing_ink_radius=0,
         )
 
     @staticmethod
@@ -58,6 +66,10 @@ class EffectProfile:
             blur_radius=0.16,
             pitch_scale=0.92,
             line_drift_dpi_fraction=0.001,
+            ink_bleed_alpha=24,
+            ink_bleed_radius=0.35,
+            missing_ink_chance=0.018,
+            missing_ink_radius=1,
         )
 
 
@@ -203,10 +215,20 @@ def draw_glyph(
     if style == "heading":
         ink = rng.randint(*profile.heading_ink_range)
 
-    layer = Image.new("RGBA", page.size, (0, 0, 0, 0))
+    padding = max(4, round(0.03 * dpi))
+    tile_width = max(round(cell_width + padding * 2), font.getbbox(ch)[2] + padding * 2)
+    tile_height = max(
+        round(line_height + padding * 2), font.getbbox(ch)[3] + padding * 2
+    )
+    origin_x = round(x - padding)
+    origin_y = round(y - padding)
+    local_x = round(x - origin_x)
+    local_y = round(y - origin_y)
+
+    layer = Image.new("RGBA", (tile_width, tile_height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(layer)
     draw.text(
-        (round(x), round(y)),
+        (local_x, local_y),
         ch,
         font=font,
         fill=(ink, ink, ink, rng.randint(*profile.alpha_range)),
@@ -214,7 +236,7 @@ def draw_glyph(
 
     if style == "heading" or rng.random() < profile.double_strike_chance:
         draw.text(
-            (round(x + 0.0012 * dpi), round(y - 0.0008 * dpi)),
+            (round(local_x + 0.0012 * dpi), round(local_y - 0.0008 * dpi)),
             ch,
             font=font,
             fill=(ink, ink, ink, profile.double_strike_alpha),
@@ -223,13 +245,53 @@ def draw_glyph(
     if rng.random() < profile.blur_chance:
         layer = layer.filter(ImageFilter.GaussianBlur(radius=profile.blur_radius))
 
-    page.alpha_composite(layer)
+    layer = apply_missing_ink(layer, glyph, profile)
+    page.alpha_composite(ink_bleed_layer(layer, profile), dest=(origin_x, origin_y))
+    page.alpha_composite(layer, dest=(origin_x, origin_y))
 
 
 def line_drift_for(glyph, dpi, profile):
     max_drift = profile.line_drift_dpi_fraction * dpi
     rng = random.Random((glyph["page"] + 1) * 1000003 + glyph["row"] * 9176)
     return rng.uniform(-max_drift, max_drift)
+
+
+def ink_bleed_layer(layer, profile):
+    if profile.ink_bleed_alpha <= 0:
+        return Image.new("RGBA", layer.size, (0, 0, 0, 0))
+
+    alpha = layer.getchannel("A").filter(
+        ImageFilter.GaussianBlur(radius=profile.ink_bleed_radius)
+    )
+    alpha = alpha.point(lambda value: min(value, profile.ink_bleed_alpha))
+    bleed = Image.new("RGBA", layer.size, (38, 38, 38, 0))
+    bleed.putalpha(alpha)
+    return bleed
+
+
+def apply_missing_ink(layer, glyph, profile):
+    if profile.missing_ink_chance <= 0:
+        return layer
+
+    damaged = layer.copy()
+    alpha = damaged.getchannel("A")
+    draw = ImageDraw.Draw(alpha)
+    rng = random.Random(int(glyph["seed"]) + 424242)
+    bbox = alpha.getbbox()
+    if bbox is None:
+        return damaged
+
+    left, top, right, bottom = bbox
+    area = max(1, (right - left) * (bottom - top))
+    holes = max(1, round(area * profile.missing_ink_chance / 100))
+    radius = profile.missing_ink_radius
+    for _ in range(holes):
+        x = rng.randint(left, max(left, right - 1))
+        y = rng.randint(top, max(top, bottom - 1))
+        draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=0)
+
+    damaged.putalpha(alpha)
+    return damaged
 
 
 def save_pdf(pages, output_path, dpi):
