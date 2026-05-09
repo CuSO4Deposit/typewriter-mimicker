@@ -12,11 +12,14 @@ main :: IO ()
 main = do
   let blocks =
         parseBlocks
-          "TITLE\n=====\n\nThis is a short paragraph that should wrap cleanly.\n\n    keep  spacing\n    and indentation\n\n- first item\n- second item\n"
+          "TITLE\n=====\n\nUsage\n-----\n\nThis is a short paragraph that should wrap cleanly.\n\n    keep  spacing\n    and indentation\n\n- first item\n- second item\n"
 
   assertEqual
     "parseBlocks recognizes headings, paragraphs, pre blocks, and lists"
     [ Heading 1 "TITLE"
+    , Preformatted ["====="]
+    , Heading 2 "Usage"
+    , Preformatted ["-----"]
     , Paragraph "This is a short paragraph that should wrap cleanly."
     , Preformatted ["    keep  spacing", "    and indentation"]
     , BulletList ["first item", "second item"]
@@ -26,6 +29,10 @@ main = do
   assertEqual
     "formatBlocks wraps paragraphs and preserves preformatted blocks"
     [ Line HeadingStyle "TITLE"
+    , Line PreStyle "====="
+    , Line NormalStyle ""
+    , Line HeadingStyle "Usage"
+    , Line PreStyle "-----"
     , Line NormalStyle ""
     , Line NormalStyle "This is a short"
     , Line NormalStyle "paragraph that should"
@@ -51,7 +58,7 @@ main = do
 
   assertEqual "emitDocument records page spec" "letter" (pagePaper (documentPage doc))
   assertEqual "emitDocument records columns" 18 (pageColumns (documentPage doc))
-  assertEqual "emitDocument paginates rows" 1 (maximumPage (documentGlyphs doc))
+  assertEqual "emitDocument paginates rows" 2 (maximumPage (documentGlyphs doc))
 
   case documentGlyphs doc of
     firstGlyph : _ -> do

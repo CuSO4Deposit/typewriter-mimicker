@@ -92,7 +92,8 @@ parseLines [] = []
 parseLines (" " : rest) = parseLines rest
 parseLines (line : rest)
   | blank line = parseLines rest
-  | isHeadingUnderline rest = Heading 1 (trimRight line) : parseLines (drop 1 rest)
+  | isHeadingUnderline rest =
+      Heading (headingLevel (headLine rest)) (trimRight line) : Preformatted [headLine rest] : parseLines (drop 1 rest)
   | isIndented line =
       let (preLines, remaining) = span isIndented (line : rest)
        in Preformatted preLines : parseLines remaining
@@ -106,14 +107,28 @@ parseLines (line : rest)
        in Paragraph (unwords (map trim paraLines)) : parseLines remaining
 
 isHeadingUnderline :: [String] -> Bool
-isHeadingUnderline (line : _) = not (null line) && all (== '=') line
+isHeadingUnderline (line : _) = isUnderline line
 isHeadingUnderline [] = False
+
+isUnderline :: String -> Bool
+isUnderline line = not (null line) && (all (== '=') line || all (== '-') line)
+
+headingLevel :: String -> Int
+headingLevel line
+  | all (== '=') line = 1
+  | all (== '-') line = 2
+  | otherwise = 3
+
+headLine :: [String] -> String
+headLine (line : _) = line
+headLine [] = ""
 
 paragraphLine :: String -> Bool
 paragraphLine line =
   not (blank line)
     && not (isIndented line)
     && not (isBullet line)
+    && not (isUnderline line)
     && line /= "---"
     && line /= "\f"
 
@@ -155,7 +170,14 @@ formatBlock _ PageBreak = [Line NormalStyle "\f"]
 joinWithBlank :: [[Line]] -> [Line]
 joinWithBlank [] = []
 joinWithBlank [x] = x
+joinWithBlank (x : y : rest)
+  | isHeadingUnderlinePair x y = x ++ joinWithBlank (y : rest)
 joinWithBlank (x : xs) = x ++ [Line NormalStyle ""] ++ joinWithBlank xs
+
+isHeadingUnderlinePair :: [Line] -> [Line] -> Bool
+isHeadingUnderlinePair [Line HeadingStyle _] [Line PreStyle underline] =
+  isUnderline underline
+isHeadingUnderlinePair _ _ = False
 
 wrapBullet :: Int -> String -> [String]
 wrapBullet width item =
