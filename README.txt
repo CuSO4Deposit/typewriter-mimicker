@@ -27,22 +27,25 @@ Enter the development shell:
 
     nix develop
 
+Render in one command:
+
+    nix run . -- examples/sample.txt .artifacts/sample.pdf
+
 Generate glyph JSON:
 
-    cd formatter
-    stack run -- ../examples/sample.txt > ../.artifacts/pages.json
+    mkdir -p .artifacts
+    stack --stack-yaml formatter/stack.yaml run -- examples/sample.txt \
+      > .artifacts/pages.json
 
 Render a PDF:
 
-    cd renderer
-    uv run python main.py ../.artifacts/pages.json \
-      --output ../.artifacts/sample.pdf \
+    uv --project renderer run python renderer/main.py \
+      .artifacts/pages.json \
+      --output .artifacts/sample.pdf \
       --dpi 150
 
 Run checks:
 
-    cd formatter
-    stack test
+    stack --stack-yaml formatter/stack.yaml test
 
-    cd renderer
-    uv run pytest
+    uv --project renderer run pytest

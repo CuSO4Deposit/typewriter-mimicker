@@ -37,6 +37,25 @@
               ruff-format.enable = true;
             };
           };
+          apps = {
+            default = {
+              type = "app";
+              program = "${
+                pkgs.writeShellApplication {
+                  name = "typewriter-mimicker";
+                  runtimeInputs = [
+                    pkgs.stack
+                    pkgs.uv
+                  ];
+                  text = ''
+                    export TYPEWRITER_REPO_ROOT=${./.}
+                    exec ${./scripts/typewriter-mimicker.sh} "$@"
+                  '';
+                }
+              }/bin/typewriter-mimicker";
+            };
+            typewriter-mimicker = config.apps.default;
+          };
           devShells = {
             default = pkgs.mkShellNoCC {
               buildInputs = with pkgs; [
