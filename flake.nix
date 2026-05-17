@@ -28,6 +28,19 @@
           system,
           ...
         }:
+        let
+          typewriter-mimicker = pkgs.writeShellApplication {
+            name = "typewriter-mimicker";
+            runtimeInputs = [
+              pkgs.stack
+              pkgs.uv
+            ];
+            text = ''
+              export TYPEWRITER_REPO_ROOT=${./.}
+              exec ${./scripts/typewriter-mimicker.sh} "$@"
+            '';
+          };
+        in
         {
           pre-commit.settings = {
             src = ./.;
@@ -40,21 +53,13 @@
           apps = {
             default = {
               type = "app";
-              program = "${
-                pkgs.writeShellApplication {
-                  name = "typewriter-mimicker";
-                  runtimeInputs = [
-                    pkgs.stack
-                    pkgs.uv
-                  ];
-                  text = ''
-                    export TYPEWRITER_REPO_ROOT=${./.}
-                    exec ${./scripts/typewriter-mimicker.sh} "$@"
-                  '';
-                }
-              }/bin/typewriter-mimicker";
+              program = "${typewriter-mimicker}/bin/typewriter-mimicker";
             };
             typewriter-mimicker = config.apps.default;
+          };
+          packages = {
+            default = typewriter-mimicker;
+            typewriter-mimicker = typewriter-mimicker;
           };
           devShells = {
             default = pkgs.mkShellNoCC {
