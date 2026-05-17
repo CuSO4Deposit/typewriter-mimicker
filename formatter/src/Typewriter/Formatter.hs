@@ -19,7 +19,8 @@ import Data.Char (isSpace)
 
 data Block
   = Heading Int String
-  | Paragraph String
+  | Paragraph [String]
+  | BlankLine
   | Preformatted [String]
   | BulletList [String]
   | Rule
@@ -91,7 +92,8 @@ parseLines :: [String] -> [Block]
 parseLines [] = []
 parseLines (" " : rest) = parseLines rest
 parseLines (line : rest)
-  | blank line = parseLines rest
+  | line == "\f" = PageBreak : parseLines rest
+  | blank line = BlankLine : parseLines rest
   | isHeadingUnderline rest =
       Heading (headingLevel (headLine rest)) (trimRight line) : Preformatted [headLine rest] : parseLines (drop 1 rest)
   | isIndented line =
@@ -101,10 +103,9 @@ parseLines (line : rest)
       let (items, remaining) = span isBullet (line : rest)
        in BulletList (map bulletText items) : parseLines remaining
   | line == "---" = Rule : parseLines rest
-  | line == "\f" = PageBreak : parseLines rest
   | otherwise =
       let (paraLines, remaining) = span paragraphLine (line : rest)
-       in Paragraph (unwords (map trim paraLines)) : parseLines remaining
+       in Paragraph (map trim paraLines) : parseLines remaining
 
 isHeadingUnderline :: [String] -> Bool
 isHeadingUnderline (line : _) = isUnderline line
@@ -157,27 +158,16 @@ trimRight :: String -> String
 trimRight = reverse . dropWhile isSpace . reverse
 
 formatBlocks :: FormatOptions -> [Block] -> [Line]
-formatBlocks options = joinWithBlank . map (formatBlock options)
+formatBlocks options = concatMap (formatBlock options)
 
 formatBlock :: FormatOptions -> Block -> [Line]
 formatBlock _ (Heading _ text) = [Line HeadingStyle text]
-formatBlock options (Paragraph text) = map (Line NormalStyle) (wrapText (formatColumns options) text)
+formatBlock options (Paragraph linesOfText) = concatMap (map (Line NormalStyle) . wrapText (formatColumns options)) linesOfText
+formatBlock _ BlankLine = [Line NormalStyle ""]
 formatBlock _ (Preformatted ls) = map (Line PreStyle) ls
 formatBlock options (BulletList items) = map (Line NormalStyle) (concatMap (wrapBullet (formatColumns options)) items)
 formatBlock options Rule = [Line NormalStyle (replicate (formatColumns options) '-')]
 formatBlock _ PageBreak = [Line NormalStyle "\f"]
-
-joinWithBlank :: [[Line]] -> [Line]
-joinWithBlank [] = []
-joinWithBlank [x] = x
-joinWithBlank (x : y : rest)
-  | isHeadingUnderlinePair x y = x ++ joinWithBlank (y : rest)
-joinWithBlank (x : xs) = x ++ [Line NormalStyle ""] ++ joinWithBlank xs
-
-isHeadingUnderlinePair :: [Line] -> [Line] -> Bool
-isHeadingUnderlinePair [Line HeadingStyle _] [Line PreStyle underline] =
-  isUnderline underline
-isHeadingUnderlinePair _ _ = False
 
 wrapBullet :: Int -> String -> [String]
 wrapBullet width item =
@@ -204,25 +194,34 @@ emitDocument options formattedLines =
           , pageColumns = documentColumns options
           , pageRows = documentRows options
           }
-    , documentGlyphs = concatMap (lineGlyphs options) (zip [0 ..] formattedLines)
+    , documentGlyphs = emitLines options 0 0 formattedLines
     }
 
-lineGlyphs :: DocumentOptions -> (Int, Line) -> [Glyph]
-lineGlyphs options (lineIndex, Line style text) =
+emitLines :: DocumentOptions -> Int -> Int -> [Line] -> [Glyph]
+emitLines _ _ _ [] = []
+emitLines options page _ (Line _ "\f" : rest) =
+  emitLines options (page + 1) 0 rest
+emitLines options page row (line : rest) =
   let rows = documentRows options
-      page = lineIndex `div` rows
-      row = lineIndex `mod` rows
-   in [ Glyph
-          { glyphChar = ch
-          , glyphPage = page
-          , glyphRow = row
-          , glyphCol = col
-          , glyphStyle = style
-          , glyphSeed = documentSeed options + lineIndex * 1009 + col * 917
-          }
-      | (col, ch) <- zip [0 ..] text
-      , ch /= '\f'
-      ]
+      (pageForLine, rowForLine) =
+        if row >= rows
+          then (page + 1, 0)
+          else (page, row)
+      glyphs = lineGlyphs options pageForLine rowForLine line
+   in glyphs ++ emitLines options pageForLine (rowForLine + 1) rest
+
+lineGlyphs :: DocumentOptions -> Int -> Int -> Line -> [Glyph]
+lineGlyphs options page row (Line style text) =
+  [ Glyph
+      { glyphChar = ch
+      , glyphPage = page
+      , glyphRow = row
+      , glyphCol = col
+      , glyphStyle = style
+      , glyphSeed = documentSeed options + (page * documentRows options + row) * 1009 + col * 917
+      }
+  | (col, ch) <- zip [0 ..] text
+  ]
 
 encodeDocumentJson :: Document -> String
 encodeDocumentJson doc =

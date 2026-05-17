@@ -18,10 +18,14 @@ main = do
     "parseBlocks recognizes headings, paragraphs, pre blocks, and lists"
     [ Heading 1 "TITLE"
     , Preformatted ["====="]
+    , BlankLine
     , Heading 2 "Usage"
     , Preformatted ["-----"]
-    , Paragraph "This is a short paragraph that should wrap cleanly."
+    , BlankLine
+    , Paragraph ["This is a short paragraph that should wrap cleanly."]
+    , BlankLine
     , Preformatted ["    keep  spacing", "    and indentation"]
+    , BlankLine
     , BulletList ["first item", "second item"]
     ]
     blocks
@@ -50,6 +54,31 @@ main = do
     "parseBlocks preserves lightly indented option lines"
     [Preformatted ["  --cols N", "  Number of columns."]]
     (parseBlocks "  --cols N\n  Number of columns.\n")
+
+  assertEqual
+    "formatBlocks preserves plain input newlines and blank lines"
+    [ Line NormalStyle "first"
+    , Line NormalStyle "second"
+    , Line NormalStyle ""
+    , Line NormalStyle ""
+    , Line NormalStyle "third"
+    ]
+    (formatBlocks (FormatOptions {formatColumns = 22}) (parseBlocks "first\nsecond\n\n\nthird\n"))
+
+  let pagedDoc =
+        emitDocument
+          DocumentOptions
+            { documentPaper = "letter"
+            , documentColumns = 18
+            , documentRows = 6
+            , documentSeed = 7
+            }
+          (formatBlocks (FormatOptions 18) (parseBlocks "before\n\f\nafter\n"))
+
+  assertEqual
+    "form feed advances the next typed line to a new page"
+    [(0, 0, 'b'), (1, 0, 'a')]
+    (map glyphPositionSummary (leadingGlyphsByLine (documentGlyphs pagedDoc)))
 
   let doc =
         emitDocument
@@ -92,3 +121,13 @@ suffixes xs@(_ : rest) = xs : suffixes rest
 maximumPage :: [Glyph] -> Int
 maximumPage [] = -1
 maximumPage (glyph : rest) = foldr (max . glyphPage) (glyphPage glyph) rest
+
+leadingGlyphsByLine :: [Glyph] -> [Glyph]
+leadingGlyphsByLine [] = []
+leadingGlyphsByLine (glyph : rest) = glyph : leadingGlyphsByLine (dropWhile (sameLine glyph) rest)
+
+sameLine :: Glyph -> Glyph -> Bool
+sameLine left right = glyphPage left == glyphPage right && glyphRow left == glyphRow right
+
+glyphPositionSummary :: Glyph -> (Int, Int, Char)
+glyphPositionSummary glyph = (glyphPage glyph, glyphRow glyph, glyphChar glyph)

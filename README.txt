@@ -73,6 +73,20 @@ Renderer options:
   --font FONT.ttf
   Override the bundled Special Elite font.
 
+Input syntax
+------------
+
+Plain lines are typed as written. A single newline in the input becomes
+a newline on the page, and each blank input line becomes one blank
+typewriter row.
+
+Use a form feed line to start a new page:
+
+    \f
+
+Indented blocks keep their spacing, bullets use "- " or "* ", and
+Setext-style heading underlines use "====" or "----".
+
 Generate glyph JSON:
 
     mkdir -p .artifacts
