@@ -92,7 +92,7 @@ parseLines :: [String] -> [Block]
 parseLines [] = []
 parseLines (" " : rest) = parseLines rest
 parseLines (line : rest)
-  | line == "\f" = PageBreak : parseLines rest
+  | isPageBreak line = PageBreak : parseLines rest
   | blank line = BlankLine : parseLines rest
   | isHeadingUnderline rest =
       Heading (headingLevel (headLine rest)) (trimRight line) : Preformatted [headLine rest] : parseLines (drop 1 rest)
@@ -131,7 +131,10 @@ paragraphLine line =
     && not (isBullet line)
     && not (isUnderline line)
     && line /= "---"
-    && line /= "\f"
+    && not (isPageBreak line)
+
+isPageBreak :: String -> Bool
+isPageBreak line = line == "\f" || trim line == "\\f"
 
 isBullet :: String -> Bool
 isBullet ('-' : ' ' : _) = True

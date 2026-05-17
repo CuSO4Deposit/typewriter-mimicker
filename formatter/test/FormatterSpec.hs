@@ -80,6 +80,21 @@ main = do
     [(0, 0, 'b'), (1, 0, 'a')]
     (map glyphPositionSummary (leadingGlyphsByLine (documentGlyphs pagedDoc)))
 
+  let escapedPagedDoc =
+        emitDocument
+          DocumentOptions
+            { documentPaper = "letter"
+            , documentColumns = 18
+            , documentRows = 6
+            , documentSeed = 7
+            }
+          (formatBlocks (FormatOptions 18) (parseBlocks "before\n\\f\nafter\n"))
+
+  assertEqual
+    "escaped form feed line also advances the next typed line to a new page"
+    [(0, 0, 'b'), (1, 0, 'a')]
+    (map glyphPositionSummary (leadingGlyphsByLine (documentGlyphs escapedPagedDoc)))
+
   let doc =
         emitDocument
           DocumentOptions
