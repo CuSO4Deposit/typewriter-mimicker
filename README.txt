@@ -76,9 +76,10 @@ Renderer options:
 Input syntax
 ------------
 
-Plain lines are typed as written. A single newline in the input becomes
-a newline on the page, and each blank input line becomes one blank
-typewriter row.
+Plain lines are typed as written. Spaces are preserved exactly. A single
+newline in the input becomes a newline on the page, and each blank input
+line becomes one blank typewriter row. Lines longer than the configured
+column width are split at the column boundary.
 
 Use a form feed line to start a new page:
 

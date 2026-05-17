@@ -38,9 +38,9 @@ main = do
     , Line HeadingStyle "Usage"
     , Line PreStyle "-----"
     , Line NormalStyle ""
-    , Line NormalStyle "This is a short"
-    , Line NormalStyle "paragraph that should"
-    , Line NormalStyle "wrap cleanly."
+    , Line NormalStyle "This is a short paragr"
+    , Line NormalStyle "aph that should wrap c"
+    , Line NormalStyle "leanly."
     , Line NormalStyle ""
     , Line PreStyle "    keep  spacing"
     , Line PreStyle "    and indentation"
@@ -64,6 +64,19 @@ main = do
     , Line NormalStyle "third"
     ]
     (formatBlocks (FormatOptions {formatColumns = 22}) (parseBlocks "first\nsecond\n\n\nthird\n"))
+
+  assertEqual
+    "formatBlocks preserves user-controlled spacing in plain lines"
+    [ Line NormalStyle "Name:      Bee's Knees  "
+    , Line NormalStyle "52.5 mL     Dry Gin"
+    ]
+    (formatBlocks (FormatOptions {formatColumns = 40}) (parseBlocks "Name:      Bee's Knees  \n52.5 mL     Dry Gin\n"))
+
+  assertEqual
+    "formatBlocks preserves user-controlled spacing in bullet items"
+    [ Line NormalStyle "- 10 mL       Honey Syrup"
+    ]
+    (formatBlocks (FormatOptions {formatColumns = 40}) (parseBlocks "- 10 mL       Honey Syrup\n"))
 
   let pagedDoc =
         emitDocument

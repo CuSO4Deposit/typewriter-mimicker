@@ -105,7 +105,7 @@ parseLines (line : rest)
   | line == "---" = Rule : parseLines rest
   | otherwise =
       let (paraLines, remaining) = span paragraphLine (line : rest)
-       in Paragraph (map trim paraLines) : parseLines remaining
+       in Paragraph paraLines : parseLines remaining
 
 isHeadingUnderline :: [String] -> Bool
 isHeadingUnderline (line : _) = isUnderline line
@@ -179,13 +179,12 @@ wrapBullet width item =
     first : rest -> ("- " <> first) : map ("  " <>) rest
 
 wrapText :: Int -> String -> [String]
-wrapText width text = go [] (words text)
+wrapText width text = chunks (max 1 width) text
  where
-  go acc [] = reverse acc
-  go [] (word : rest) = go [word] rest
-  go (line : done) (word : rest)
-    | length line + 1 + length word <= width = go ((line <> " " <> word) : done) rest
-    | otherwise = go (word : line : done) rest
+  chunks _ "" = []
+  chunks chunkWidth value =
+    let (line, rest) = splitAt chunkWidth value
+     in line : chunks chunkWidth rest
 
 emitDocument :: DocumentOptions -> [Line] -> Document
 emitDocument options formattedLines =
